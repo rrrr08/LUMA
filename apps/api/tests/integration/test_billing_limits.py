@@ -214,50 +214,55 @@ class TestBillingLimits:
 
     def test_razorpay_create_order_mock(self):
         """Creating a Razorpay order in Sandbox Mock Mode returns a mock order ID."""
-        response = client.post(
-            f"{settings.API_V1_STR}/auth/razorpay/create-order",
-            json={"plan": "pro", "promo_code": "SAVE50"}
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["is_mock"] is True
-        assert data["order_id"].startswith("order_mock_")
-        assert data["currency"] == "INR"
-        # 50% discount on 29 USD * 83 INR/USD * 100 paise/INR = 120350 paise
-        assert data["amount"] == 120350
+        with patch.object(settings, "RAZORPAY_KEY_ID", None), \
+             patch.object(settings, "RAZORPAY_KEY_SECRET", None):
+            response = client.post(
+                f"{settings.API_V1_STR}/auth/razorpay/create-order",
+                json={"plan": "pro", "promo_code": "SAVE50"}
+            )
+            assert response.status_code == 200
+            data = response.json()
+            assert data["is_mock"] is True
+            assert data["order_id"].startswith("order_mock_")
+            assert data["currency"] == "INR"
+            # 50% discount on 29 USD * 83 INR/USD * 100 paise/INR = 120350 paise
+            assert data["amount"] == 120350
 
     def test_razorpay_verify_payment_mock(self):
         """Verifying a payment in Sandbox Mock Mode successfully upgrades user plan and generates an invoice."""
-        # 1. First reset plan to free
-        db = TestingSessionLocal()
-        try:
-            user = db.query(UserRepository.create.__globals__["User"]).filter_by(email="test@x.com").first()
-            if user:
-                user.plan = "free"
-                db.commit()
-        finally:
-            db.close()
+        with patch.object(settings, "RAZORPAY_KEY_ID", None), \
+             patch.object(settings, "RAZORPAY_KEY_SECRET", None):
+            # 1. First reset plan to free
+            db = TestingSessionLocal()
+            try:
+                user = db.query(UserRepository.create.__globals__["User"]).filter_by(email="test@x.com").first()
+                if user:
+                    user.plan = "free"
+                    db.commit()
+            finally:
+                db.close()
 
-        # 2. Call verification with mock order ID
-        response = client.post(
-            f"{settings.API_V1_STR}/auth/razorpay/verify-payment",
-            json={
-                "razorpay_order_id": "order_mock_1234567890",
-                "plan": "startup",
-                "amount_usd": 99.0,
-                "promo_code": "SAVE50"
-            }
-        )
-        assert response.status_code == 200
-        assert response.json()["plan"] == "startup"
+            # 2. Call verification with mock order ID
+            response = client.post(
+                f"{settings.API_V1_STR}/auth/razorpay/verify-payment",
+                json={
+                    "razorpay_order_id": "order_mock_1234567890",
+                    "plan": "startup",
+                    "amount_usd": 99.0,
+                    "promo_code": "SAVE50"
+                }
+            )
+            assert response.status_code == 200
+            assert response.json()["plan"] == "startup"
 
-        # 3. Check that the invoice was generated for Startup plan with 50% discount (49.50)
-        inv_response = client.get(f"{settings.API_V1_STR}/auth/invoices")
-        assert inv_response.status_code == 200
-        data = inv_response.json()
-        assert len(data) >= 1
-        assert data[0]["plan"] == "startup"
-        assert data[0]["amount"] == 49.5  # 50% discount on $99
+            # 3. Check that the invoice was generated for Startup plan with 50% discount (49.50)
+            inv_response = client.get(f"{settings.API_V1_STR}/auth/invoices")
+            assert inv_response.status_code == 200
+            data = inv_response.json()
+            assert len(data) >= 1
+            assert data[0]["plan"] == "startup"
+            assert data[0]["amount"] == 49.5  # 50% discount on $99
+
 
     @patch("httpx.AsyncClient.post")
     def test_razorpay_create_order_live(self, mock_post):
