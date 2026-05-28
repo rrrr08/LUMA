@@ -19,6 +19,11 @@ dist/
 build/
 *.egg-info/
 
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
 # Environment configurations and keys (CRITICAL)
 .env
 .env.*
