@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     SANDBOX_TIMEOUT_SEC: float = 5.0
     SANDBOX_MEMORY_LIMIT_MB: int = 256
     
+    # Razorpay Settings
+    RAZORPAY_KEY_ID: Optional[str] = Field(default=None, validation_alias="RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET: Optional[str] = Field(default=None, validation_alias="RAZORPAY_KEY_SECRET")
+    
     # CORS Origins
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000"]
     

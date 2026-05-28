@@ -122,3 +122,26 @@ class QuotaSettingsUpdate(BaseModel):
     slack_webhook_url: Optional[str] = None
     threshold_percentage: int = Field(80, ge=10, le=100)
 
+
+class RazorpayOrderCreate(BaseModel):
+    plan: str
+    promo_code: Optional[str] = None
+
+
+class RazorpayOrderResponse(BaseModel):
+    order_id: str
+    amount: int
+    currency: str
+    key_id: Optional[str] = None
+    is_mock: bool
+
+
+class RazorpayPaymentVerify(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: Optional[str] = None
+    razorpay_signature: Optional[str] = None
+    plan: str
+    amount_usd: float
+    promo_code: Optional[str] = None
+
+

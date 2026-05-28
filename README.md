@@ -22,6 +22,7 @@ A high-performance monorepo platform that dynamically turns any public structure
     * **Per-Endpoint Consumption Charts**: Visual breakdowns of request workload distribution across generated scrapers.
     * **Persistent Invoice Logs**: Automatic database invoice logs on upgrades with simulated PDF-receipt downloads and promo code discounts.
     * **Usage Alerting**: Customizable email and Slack webhook alerts for quota thresholds.
+    * **Razorpay Payment Integration**: Secure gateway plan upgrades using Razorpay Checkout, backend HMAC-SHA256 signature validation, and database invoice generation (with mock sandbox fallback).
 
 ---
 
@@ -94,6 +95,16 @@ uv run --python .venv python -m pytest
    npm run dev
    ```
    * *Dashboard console will be available at:* `http://localhost:3000`
+
+### 6. Razorpay Payment Gateway Configuration (Optional)
+To enable live subscription payments:
+1. Retrieve API test keys from your Razorpay Dashboard.
+2. Append them to `apps/api/.env`:
+   ```env
+   RAZORPAY_KEY_ID=your_key_id
+   RAZORPAY_KEY_SECRET=your_key_secret
+   ```
+*Note: If these settings are omitted, the platform automatically runs in a Sandbox Mock Mode, bypassing the overlay modal to facilitate full upgrade verification and invoice generation during local development.*
 
 ---
 

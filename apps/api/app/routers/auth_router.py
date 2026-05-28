@@ -2,9 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.schemas.project_schema import UserCreate, UserResponse, TokenResponse
+from app.schemas.project_schema import UserCreate, UserResponse, TokenResponse, RazorpayOrderCreate, RazorpayOrderResponse, RazorpayPaymentVerify
 from app.repositories.project_repo import UserRepository
 from app.core.security import hash_password, verify_password, create_access_token, decode_access_token
+from app.core.config import settings
+import httpx
+import uuid
+import hmac
+import hashlib
+import random
+from datetime import datetime
+from app.models.entities import UserInvoice
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -163,4 +171,111 @@ def update_quota_settings(
     db.commit()
     db.refresh(q_settings)
     return q_settings
+
+
+@router.post("/razorpay/create-order", response_model=RazorpayOrderResponse)
+async def create_razorpay_order(
+    payload: RazorpayOrderCreate,
+    user_id: str = Depends(get_current_user_id_dependency),
+    db: Session = Depends(get_db)
+):
+    if payload.plan not in ["pro", "startup"]:
+        raise HTTPException(status_code=400, detail="Invalid plan for paid order creation")
+        
+    base_price = 29.0 if payload.plan == "pro" else 99.0
+    if payload.promo_code and payload.promo_code.upper() == "SAVE50":
+        base_price = base_price * 0.5
+        
+    amount_in_inr = base_price * 83
+    amount_in_paise = int(amount_in_inr * 100)
+    
+    if settings.RAZORPAY_KEY_ID and settings.RAZORPAY_KEY_SECRET:
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "https://api.razorpay.com/v1/orders",
+                    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                    json={
+                        "amount": amount_in_paise,
+                        "currency": "INR",
+                        "receipt": f"receipt_{uuid.uuid4().hex[:6]}"
+                    },
+                    timeout=10.0
+                )
+            if response.status_code == 200:
+                order_data = response.json()
+                return RazorpayOrderResponse(
+                    order_id=order_data["id"],
+                    amount=order_data["amount"],
+                    currency=order_data["currency"],
+                    key_id=settings.RAZORPAY_KEY_ID,
+                    is_mock=False
+                )
+            else:
+                raise HTTPException(status_code=502, detail=f"Razorpay order creation failed: {response.text}")
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=502, detail=f"Razorpay integration error: {str(e)}")
+    else:
+        # Sandbox Mock Fallback
+        mock_order_id = f"order_mock_{uuid.uuid4().hex[:12]}"
+        return RazorpayOrderResponse(
+            order_id=mock_order_id,
+            amount=amount_in_paise,
+            currency="INR",
+            key_id="mock_key_id",
+            is_mock=True
+        )
+
+
+@router.post("/razorpay/verify-payment", response_model=UserResponse)
+async def verify_razorpay_payment(
+    payload: RazorpayPaymentVerify,
+    user_id: str = Depends(get_current_user_id_dependency),
+    db: Session = Depends(get_db)
+):
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    is_mock_payment = payload.razorpay_order_id.startswith("order_mock_") or not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET
+    
+    if not is_mock_payment:
+        # Verify signature
+        if not payload.razorpay_payment_id or not payload.razorpay_signature:
+            raise HTTPException(status_code=400, detail="Missing razorpay_payment_id or razorpay_signature for live transaction")
+            
+        msg = f"{payload.razorpay_order_id}|{payload.razorpay_payment_id}"
+        generated_signature = hmac.new(
+            key=settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
+            msg=msg.encode("utf-8"),
+            digestmod=hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(generated_signature, payload.razorpay_signature):
+            raise HTTPException(status_code=400, detail="Invalid payment signature")
+            
+    # Success path
+    user.plan = payload.plan
+    db.commit()
+    db.refresh(user)
+    
+    # Generate Invoice
+    base_price = 29.0 if payload.plan == "pro" else 99.0
+    if payload.promo_code and payload.promo_code.upper() == "SAVE50":
+        base_price = base_price * 0.5
+        
+    inv_num = f"INV-{datetime.now().year}-{random.randint(1000, 9999)}"
+    invoice = UserInvoice(
+        user_id=user.id,
+        invoice_number=inv_num,
+        plan=payload.plan,
+        amount=base_price,
+        status="paid"
+    )
+    db.add(invoice)
+    db.commit()
+    
+    return UserResponse(id=user.id, email=user.email, role=user.role, plan=user.plan or "free")
+
 

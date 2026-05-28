@@ -125,41 +125,147 @@ export default function BillingPage() {
 
   useEffect(() => {
     loadAllData();
+
+    // Dynamically inject Razorpay Checkout script
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // Clean up the script tag if the component unmounts
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
   }, []);
 
-  // Handle plan update/upgrade
+  // Handle plan update/upgrade with Razorpay gateway
   const handleConfirmUpgrade = async () => {
     if (!selectedUpgradePlan || updatingPlan) return;
     setUpdatingPlan(true);
     try {
-      const res = await apiFetch("/v1/auth/plan", {
-        method: "PUT",
+      // 1. Create Order on Backend
+      const orderRes = await apiFetch("/v1/auth/razorpay/create-order", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           plan: selectedUpgradePlan,
           promo_code: promoCode 
         })
       });
-      if (res.ok) {
-        await refreshUser();
-        // Reload invoices and profile
-        const invoicesRes = await apiFetch("/v1/auth/invoices");
-        if (invoicesRes.ok) {
-          setInvoices(await invoicesRes.json());
-        }
-        setToast({ 
-          message: `Successfully updated subscription plan to ${selectedUpgradePlan.toUpperCase()}!`, 
-          type: "success" 
+
+      if (!orderRes.ok) {
+        const err = await orderRes.json();
+        setToast({ message: err.detail || "Failed to create payment order.", type: "error" });
+        setUpdatingPlan(false);
+        return;
+      }
+
+      const orderData = await orderRes.json();
+      const base_price = selectedUpgradePlan === "pro" ? 29.0 : 99.0;
+
+      // 2. Route Sandbox Fallback vs Real Checkout
+      if (orderData.is_mock) {
+        // Sandbox Mock Mode: Bypass Razorpay overlay entirely and immediately verify order ID
+        const verifyRes = await apiFetch("/v1/auth/razorpay/verify-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            razorpay_order_id: orderData.order_id,
+            plan: selectedUpgradePlan,
+            amount_usd: base_price,
+            promo_code: promoCode
+          })
         });
-        setSelectedUpgradePlan(null);
-        setPromoCode("");
-        setPromoDiscount(0);
+
+        if (verifyRes.ok) {
+          await refreshUser();
+          const invoicesRes = await apiFetch("/v1/auth/invoices");
+          if (invoicesRes.ok) {
+            setInvoices(await invoicesRes.json());
+          }
+          setToast({ 
+            message: `Successfully upgraded subscription plan to ${selectedUpgradePlan.toUpperCase()} (Sandbox Mode)!`, 
+            type: "success" 
+          });
+          setSelectedUpgradePlan(null);
+          setPromoCode("");
+          setPromoDiscount(0);
+        } else {
+          const err = await verifyRes.json();
+          setToast({ message: err.detail || "Sandbox payment verification failed.", type: "error" });
+        }
       } else {
-        const err = await res.json();
-        setToast({ message: err.detail || "Failed to update plan.", type: "error" });
+        // Real Gateway Checkout
+        if (!(window as any).Razorpay) {
+          setToast({ message: "Razorpay checkout SDK is still loading. Please try again in a moment.", type: "error" });
+          setUpdatingPlan(false);
+          return;
+        }
+
+        const options = {
+          key: orderData.key_id,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: "PageToAPI Platform",
+          description: `Upgrade to ${selectedUpgradePlan.toUpperCase()} Plan`,
+          order_id: orderData.order_id,
+          handler: async function (response: any) {
+            setUpdatingPlan(true);
+            try {
+              const verifyRes = await apiFetch("/v1/auth/razorpay/verify-payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  razorpay_order_id: orderData.order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  plan: selectedUpgradePlan,
+                  amount_usd: base_price,
+                  promo_code: promoCode
+                })
+              });
+
+              if (verifyRes.ok) {
+                await refreshUser();
+                const invoicesRes = await apiFetch("/v1/auth/invoices");
+                if (invoicesRes.ok) {
+                  setInvoices(await invoicesRes.json());
+                }
+                setToast({ 
+                  message: `Successfully upgraded subscription plan to ${selectedUpgradePlan.toUpperCase()}!`, 
+                  type: "success" 
+                });
+                setSelectedUpgradePlan(null);
+                setPromoCode("");
+                setPromoDiscount(0);
+              } else {
+                const err = await verifyRes.json();
+                setToast({ message: err.detail || "Live payment verification failed.", type: "error" });
+              }
+            } catch (err) {
+              setToast({ message: "Verification network error occurred.", type: "error" });
+            } finally {
+              setUpdatingPlan(false);
+            }
+          },
+          prefill: {
+            email: user?.email || "",
+          },
+          theme: {
+            color: "#3B82F6"
+          }
+         };
+
+         const rzp = new (window as any).Razorpay(options);
+         rzp.on("payment.failed", function (response: any) {
+           setToast({ message: response.error.description || "Payment failed or cancelled.", type: "error" });
+         });
+         rzp.open();
       }
     } catch (err) {
-      setToast({ message: "Network error occurred.", type: "error" });
+      setToast({ message: "An unexpected error occurred during upgrade checkout.", type: "error" });
     } finally {
       setUpdatingPlan(false);
     }
