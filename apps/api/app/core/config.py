@@ -1,10 +1,10 @@
 import os
 from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, PostgresDsn
+from pydantic import Field, PostgresDsn, field_validator
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Page-to-API Platform"
+    PROJECT_NAME: str = "Prism Platform"
     API_V1_STR: str = "/v1"
     
     # Database
@@ -12,6 +12,13 @@ class Settings(BaseSettings):
         default="postgresql://postgres:password123@localhost:5432/pagetoapi",
         validation_alias="DATABASE_URL"
     )
+    
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_url(cls, v: str) -> str:
+        if isinstance(v, str) and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
     
     # Redis
     REDIS_URL: str = Field(

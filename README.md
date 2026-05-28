@@ -1,4 +1,4 @@
-# ⚡ Page-to-API Platform
+# ⚡ PRISM — Multimodal Page-to-API Engine
 
 A high-performance monorepo platform that dynamically turns any public structured website page into a live, cached REST API using Playwright crawling, GPT-4o Vision visual analysis, and safe sandboxed code execution.
 

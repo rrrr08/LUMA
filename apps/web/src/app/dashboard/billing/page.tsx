@@ -208,7 +208,7 @@ export default function BillingPage() {
           key: orderData.key_id,
           amount: orderData.amount,
           currency: orderData.currency,
-          name: "PageToAPI Platform",
+          name: "PRISM Platform",
           description: `Upgrade to ${selectedUpgradePlan.toUpperCase()} Plan`,
           order_id: orderData.order_id,
           handler: async function (response: any) {
@@ -297,7 +297,7 @@ export default function BillingPage() {
   const handleDownloadInvoice = (inv: Invoice) => {
     const content = `
 ========================================
-             PAGETOAPI PLATFORM
+             PRISM PLATFORM
              OFFICIAL RECEIPT
 ========================================
 Invoice Ref:  ${inv.invoice_number}
@@ -308,7 +308,7 @@ User Account: ${user?.email || "N/A"}
 ----------------------------------------
 Description                     Amount
 ----------------------------------------
-Page-to-API Scraper Sub:        $${inv.amount.toFixed(2)}
+Prism Scraper Sub:              $${inv.amount.toFixed(2)}
 Tier: ${inv.plan.toUpperCase()} Monthly Quotas
  - Active APIs: Limit ${PLAN_LIMITS[inv.plan as "pro" | "startup"]?.apis || 0}
  - Monthly Requests: Limit ${PLAN_LIMITS[inv.plan as "pro" | "startup"]?.requests.toLocaleString() || 0}
@@ -317,8 +317,8 @@ Tier: ${inv.plan.toUpperCase()} Monthly Quotas
 Total Paid:                     $${inv.amount.toFixed(2)} USD
 ----------------------------------------
 
-Thank you for choosing PageToAPI!
-For support, contact support@pagetoapi.com
+Thank you for choosing PRISM!
+For support, contact support@prism.sh
 ========================================
 `;
     const blob = new Blob([content], { type: "text/plain" });

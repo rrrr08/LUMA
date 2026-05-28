@@ -16,8 +16,9 @@ export default function DashboardLayout({
     <AuthGuard>
       <div className="app-container">
         <aside className="sidebar">
-          <div className="logo">
-            <span>⚡</span> PageToAPI
+          <div className="logo" style={{ letterSpacing: "0.1em", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{ fontSize: "1.5rem", fontWeight: "900", background: "linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>▲</span> 
+            <span style={{ fontWeight: "900", textTransform: "uppercase", background: "linear-gradient(135deg, #ffffff, #f472b6, #a78bfa, #60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>PRISM</span>
           </div>
           <nav style={{ flex: 1 }}>
             <SidebarNav />
