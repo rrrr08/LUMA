@@ -1,0 +1,44 @@
+# Dependency directories
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Python virtual environments & build artifacts
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Environment configurations and keys (CRITICAL)
+.env
+.env.*
+!.env.example
+.git-credentials
+api-keys.txt
+*.key
+*.pem
+
+# IDEs and System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Scratch and Agent Cache directories
+scratch/
+.gemini/
+brain/
+logs/
+.system_generated/
+browser_recordings/
+html_artifacts/

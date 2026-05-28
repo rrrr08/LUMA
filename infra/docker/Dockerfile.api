@@ -1,0 +1,33 @@
+# Stage 1: Build dependency environment
+FROM python:3.11-slim-bookworm AS builder
+
+WORKDIR /build
+RUN pip install --default-timeout=1000 --no-cache-dir uv
+
+COPY apps/api/requirements.txt .
+RUN uv venv /opt/venv && uv pip install --python /opt/venv/bin/python -r requirements.txt
+
+# Stage 2: Runtime Image with pre-configured Playwright browsers
+FROM mcr.microsoft.com/playwright/python:v1.39.0-jammy AS runner
+
+WORKDIR /app
+
+# Copy the pre-installed virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+COPY apps/api/app /app/app
+COPY apps/api/alembic /app/alembic
+COPY apps/api/alembic.ini /app/alembic.ini
+
+# Ensure PATH executes the virtual environment binaries by default
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Run as non-root user 'pwuser' (UID 1000) pre-defined in the Playwright base image
+USER pwuser
+
+ENV PORT=8000
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
