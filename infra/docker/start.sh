@@ -9,8 +9,8 @@ fi
 echo "Current PATH: $PATH"
 echo "Using Python: $(which python)"
 
-echo "Running Database Migrations..."
-alembic upgrade head
+echo "Running Database Bootstrap & Migrations..."
+python -m app.db.bootstrap
 
 echo "Starting Celery worker in background..."
 celery -A app.workers.celery_app.celery_app worker --loglevel=info &
