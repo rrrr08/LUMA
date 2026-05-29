@@ -1,5 +1,5 @@
-# Stage 1: Build dependency environment
-FROM python:3.11-slim-bookworm AS builder
+# Stage 1: Build dependency environment (using same base image as runner to ensure Python path compatibility)
+FROM mcr.microsoft.com/playwright/python:v1.39.0-jammy AS builder
 
 WORKDIR /build
 RUN pip install --default-timeout=1000 --no-cache-dir uv
