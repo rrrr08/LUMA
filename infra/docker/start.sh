@@ -12,8 +12,8 @@ echo "Using Python: $(which python)"
 echo "Running Database Bootstrap & Migrations..."
 python -m app.db.bootstrap
 
-echo "Starting Celery worker in background..."
-celery -A app.workers.celery_app.celery_app worker --loglevel=info &
+echo "Starting Celery worker in background (limiting concurrency to 1 to stay within free tier 512MB RAM)..."
+celery -A app.workers.celery_app.celery_app worker --loglevel=info --concurrency=1 &
 
 echo "Starting APScheduler in background..."
 python -m app.workers.scheduler &
