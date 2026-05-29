@@ -1,5 +1,5 @@
 # Stage 1: Build dependency environment (using same base image as runner to ensure Python path compatibility)
-FROM mcr.microsoft.com/playwright/python:v1.39.0-jammy AS builder
+FROM mcr.microsoft.com/playwright/python:v1.60.0-jammy AS builder
 
 WORKDIR /build
 RUN pip install --default-timeout=1000 --no-cache-dir uv
@@ -8,7 +8,7 @@ COPY apps/api/requirements.txt .
 RUN uv venv /opt/venv && uv pip install --python /opt/venv/bin/python -r requirements.txt
 
 # Stage 2: Runtime Image with pre-configured Playwright browsers
-FROM mcr.microsoft.com/playwright/python:v1.39.0-jammy AS runner
+FROM mcr.microsoft.com/playwright/python:v1.60.0-jammy AS runner
 
 WORKDIR /app
 
