@@ -1,13 +1,13 @@
-services:
+databases:
   # 1. PostgreSQL Database
-  - type: database
-    name: prism-db
+  - name: prism-db
     databaseName: pagetoapi
     user: postgres
     plan: free
 
-  # 2. Redis Cache & Queue
-  - type: redis
+services:
+  # 2. Redis Cache & Queue (using KeyValue type per Render spec)
+  - type: keyvalue
     name: prism-redis
     plan: free
     ipAllowList: [] # Only allow internal network connection for security
@@ -25,7 +25,8 @@ services:
           name: prism-db
           property: connectionString
       - key: REDIS_URL
-        fromRedis:
+        fromService:
+          type: keyvalue
           name: prism-redis
           property: connectionString
       - key: OPENAI_API_KEY
@@ -50,7 +51,8 @@ services:
           name: prism-db
           property: connectionString
       - key: REDIS_URL
-        fromRedis:
+        fromService:
+          type: keyvalue
           name: prism-redis
           property: connectionString
       - key: OPENAI_API_KEY
@@ -75,7 +77,8 @@ services:
           name: prism-db
           property: connectionString
       - key: REDIS_URL
-        fromRedis:
+        fromService:
+          type: keyvalue
           name: prism-redis
           property: connectionString
       - key: OPENAI_API_KEY
