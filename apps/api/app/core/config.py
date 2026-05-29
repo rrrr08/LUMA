@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_SECRET: Optional[str] = Field(default=None, validation_alias="RAZORPAY_KEY_SECRET")
     
     # CORS Origins
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000"]
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:8000"]
     
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
