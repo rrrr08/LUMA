@@ -1,8 +1,6 @@
 databases:
   # 1. PostgreSQL Database
   - name: prism-db
-    databaseName: pagetoapi
-    user: postgres
     plan: free
 
 services:
@@ -44,7 +42,7 @@ services:
     env: docker
     dockerfilePath: infra/docker/Dockerfile.worker
     dockerContext: .
-    plan: starter # Starter plan recommended for Playwright headless browser workloads
+    plan: starter # Starter plan recommended for Playwright workloads
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -69,7 +67,7 @@ services:
     env: docker
     dockerfilePath: infra/docker/Dockerfile.worker
     dockerContext: .
-    startCommand: python -m app.workers.scheduler
+    dockerCommand: python -m app.workers.scheduler
     plan: free
     envVars:
       - key: DATABASE_URL
