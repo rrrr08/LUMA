@@ -141,10 +141,11 @@ async def analyze_visuals(payload: Dict[str, Any]):
         analysis = await AIAnalysisService.analyze_page(title, dom_tree, screenshot_b64)
         return analysis
     except Exception as e:
-        logger.error(f"AI Schema analysis failure: {str(e)}")
+        import traceback
+        logger.error(f"AI Schema analysis failure: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"AI structure mapping failed: {str(e)}"
+            detail=f"AI structure mapping failed: {repr(e)}"
         )
 
 
