@@ -10,7 +10,7 @@ services:
     plan: free
     ipAllowList: [] # Only allow internal network connection for security
 
-  # 3. FastAPI Web Service (Backend API)
+  # 3. FastAPI Web Service (Monolith Service running API + Celery Worker + Scheduler)
   - type: web
     name: prism-api
     env: docker
@@ -35,54 +35,3 @@ services:
         sync: false # Set in the Render Dashboard UI (optional)
       - key: RAZORPAY_KEY_SECRET
         sync: false # Set in the Render Dashboard UI (optional)
-
-  # 4. Celery Worker (Background Scraper Execution)
-  - type: worker
-    name: prism-worker
-    env: docker
-    dockerfilePath: infra/docker/Dockerfile.worker
-    dockerContext: .
-    plan: starter # Starter plan recommended for Playwright workloads
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: prism-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: prism-redis
-          property: connectionString
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: JWT_SECRET_KEY
-        fromService:
-          name: prism-api
-          type: web
-          envVarKey: JWT_SECRET_KEY
-
-  # 5. APScheduler Daemon (Cron Emittance)
-  - type: worker
-    name: prism-scheduler
-    env: docker
-    dockerfilePath: infra/docker/Dockerfile.worker
-    dockerContext: .
-    dockerCommand: python -m app.workers.scheduler
-    plan: free
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: prism-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: prism-redis
-          property: connectionString
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: JWT_SECRET_KEY
-        fromService:
-          name: prism-api
-          type: web
-          envVarKey: JWT_SECRET_KEY

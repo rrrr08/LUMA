@@ -1,0 +1,2 @@
+# Force sh scripts to always use LF line endings to avoid container execution failures
+*.sh text eol=lf
