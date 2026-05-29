@@ -108,6 +108,27 @@ To enable live subscription payments:
 
 ---
 
+## 🚢 Deployment & Production Operations
+
+The codebase includes production-ready container definitions, automated platform configuration templates, and Kubernetes manifests:
+
+* **Docker Compose**: Quickly boot the full stack locally or on a single VM using [docker-compose.yml](file:///e:/open-ai/docker-compose.yml).
+* **Render (Backend & Databases)**: Spin up PostgreSQL, Redis, FastAPI, and Celery background workers automatically via the unified [render.yaml](file:///e:/open-ai/render.yaml) blueprint.
+* **Vercel (Next.js Frontend)**: Direct zero-configuration deployment for the Next.js UI app inside `apps/web`.
+* **Kubernetes Orchestration**: Production-grade manifests located in [infra/kubernetes/](file:///e:/open-ai/infra/kubernetes):
+  * [postgres.yaml](file:///e:/open-ai/infra/kubernetes/postgres.yaml) - Persistent storage for metadata.
+  * [redis.yaml](file:///e:/open-ai/infra/kubernetes/redis.yaml) - Task queue broker and cache engine.
+  * [secrets.yaml](file:///e:/open-ai/infra/kubernetes/secrets.yaml) - External configuration and secret mounts.
+  * [api.yaml](file:///e:/open-ai/infra/kubernetes/api.yaml) - Multi-replica stateless API Gateway with HPA & PDB.
+  * [worker.yaml](file:///e:/open-ai/infra/kubernetes/worker.yaml) - Dynamic Celery scraping worker pool.
+  * [scheduler.yaml](file:///e:/open-ai/infra/kubernetes/scheduler.yaml) - Single-replica periodic beat emitter.
+  * [web.yaml](file:///e:/open-ai/infra/kubernetes/web.yaml) - Multi-replica Next.js web console with HPA & PDB.
+  * [ingress.yaml](file:///e:/open-ai/infra/kubernetes/ingress.yaml) - Nginx ingress rules for SSL and routing.
+
+For a complete step-by-step production rollout plan, configuration catalog, and diagnostic checklists, see the [Prism Deployment Guide](file:///C:/Users/ASUS/.gemini/antigravity-ide/brain/3926b5de-e306-4e37-9fa2-73359ec527fe/deployment_guide.md).
+
+---
+
 ## 🔒 Security & Sandboxing Guards
 
 1. **AST Check Validation**:

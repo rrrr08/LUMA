@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prism-scheduler
+  namespace: default
+  labels:
+    app: prism-scheduler
+spec:
+  replicas: 1 # Must remain 1 to avoid duplicate cron job triggers
+  strategy:
+    type: Recreate # Use Recreate to ensure old pod terminates before new one starts
+  selector:
+    matchLabels:
+      app: prism-scheduler
+  template:
+    metadata:
+      labels:
+        app: prism-scheduler
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      containers:
+        - name: scheduler
+          image: prism-worker:latest # Reuses the worker image
+          imagePullPolicy: Always
+          command: ["python", "-m", "app.workers.scheduler"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: prism-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: prism-secrets
+                  key: REDIS_URL
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: prism-secrets
+                  key: OPENAI_API_KEY
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: prism-secrets
+                  key: JWT_SECRET_KEY
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os; exit(0 if os.path.exists('/tmp') else 1)"
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "import os; exit(0 if os.path.exists('/tmp') else 1)"
+            initialDelaySeconds: 5
+            periodSeconds: 10
