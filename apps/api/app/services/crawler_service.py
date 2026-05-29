@@ -103,7 +103,7 @@ class CrawlerService:
                 
                 screenshot_b64 = ""
                 if capture_screenshot:
-                    screenshot_bytes = await page.screenshot(type="png", full_page=False)
+                    screenshot_bytes = await page.screenshot(type="jpeg", quality=60, full_page=False)
                     screenshot_b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
                 
                 dom_tree = await page.evaluate("""

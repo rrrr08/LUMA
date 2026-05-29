@@ -114,7 +114,7 @@ class AIAnalysisService:
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/png;base64,{screenshot_b64}"
+                                "url": f"data:image/jpeg;base64,{screenshot_b64}"
                             }
                         }
                     ]
@@ -122,7 +122,7 @@ class AIAnalysisService:
             ],
             response_format=SchemaAnalysis,
             max_tokens=1500,
-            timeout=45.0
+            timeout=120.0
         )
         result = response.choices[0].message.parsed
         if not result:
